@@ -113,19 +113,49 @@
                     </div>
                 </fieldset>
 
-                <!-- Lump Sum Offset -->
-                <div class="mb-8 border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <label for="lumpSum" class="block text-base font-semibold text-gray-800 mb-2">Lump Sum Bonus / Offset ($)</label>
-                    <p id="lumpSumHelp" class="text-sm text-gray-600 mb-4">Enter any one-time bonus or lump sum received to offset lost wages.</p>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm">$</span>
+                <!-- Financial Offsets -->
+                <fieldset class="mb-8 border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <legend class="text-base font-semibold text-gray-800 px-2">Financial Offsets</legend>
+                    <p class="text-sm text-gray-600 mb-4 px-2">Enter any one-time bonuses or additional income sources that offset your lost wages.</p>
+                    
+                    <div class="space-y-4 px-2">
+                        <!-- Lump Sum -->
+                        <div>
+                            <label for="lumpSum" class="block text-sm font-medium text-gray-700 mb-1">Lump Sum Bonus / Offset ($)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                                <input type="number" id="lumpSum" required min="0" step="0.01" value="1350"
+                                    class="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-base text-gray-900 bg-white">
+                            </div>
                         </div>
-                        <input type="number" id="lumpSum" required min="0" step="0.01" value="1350"
-                            class="block w-full pl-8 pr-3 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-base text-gray-900 bg-white"
-                            aria-describedby="lumpSumHelp">
+
+                        <!-- Vacation & Unemployment Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Vacation Cash Out -->
+                            <div>
+                                <label for="vacationHours" class="block text-sm font-medium text-gray-700 mb-1">Cashed Out Vacation (Hours)</label>
+                                <input type="number" id="vacationHours" required min="0" max="40" step="0.5" value="0" placeholder="Max 40"
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-base text-gray-900 bg-white">
+                                <p class="text-xs text-gray-500 mt-1">Maximum 40 hours.</p>
+                            </div>
+                            
+                            <!-- Unemployment -->
+                            <div>
+                                <label for="unemploymentBenefit" class="block text-sm font-medium text-gray-700 mb-1">Weekly Unemployment Benefit ($)</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    <input type="number" id="unemploymentBenefit" required min="0" step="1" value="0" placeholder="e.g. 500"
+                                        class="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-base text-gray-900 bg-white">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Adjusted automatically for partial weeks worked.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </fieldset>
 
                 <button type="submit" 
                     class="w-full bg-primary hover:bg-primaryFocus text-white font-bold py-3 px-4 rounded-md shadow focus:outline-none transition-colors duration-200 text-lg">
@@ -143,8 +173,11 @@
                         <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider mb-1">Net Strike Cost</h3>
                         <p id="resNetLostWages" class="text-3xl font-extrabold text-red-700 mb-3">$0.00</p>
                         <div class="text-sm space-y-1">
-                            <p class="text-red-800 flex justify-between"><span>Gross Lost Wages:</span> <span id="resLostWages" class="font-semibold">$0.00</span></p>
-                            <p class="text-green-700 flex justify-between border-b border-red-200 pb-2 mb-2"><span>Lump Sum Offset:</span> <span id="resLumpSum" class="font-semibold">-$0.00</span></p>
+                            <p class="text-red-800 flex justify-between"><span>Gross Lost Wages (FY25 Rate):</span> <span id="resLostWages" class="font-semibold">$0.00</span></p>
+                            <p class="text-green-700 flex justify-between"><span>Lump Sum Offset:</span> <span id="resLumpSum" class="font-semibold">-$0.00</span></p>
+                            <p class="text-green-700 flex justify-between hidden" id="rowVacation"><span>Vacation Cash Out:</span> <span id="resVacation" class="font-semibold">-$0.00</span></p>
+                            <p class="text-green-700 flex justify-between hidden border-b border-red-200 pb-2 mb-2" id="rowUnemployment"><span>Unemployment (Net):</span> <span id="resUnemployment" class="font-semibold">-$0.00</span></p>
+                            <div class="border-b border-red-200 pb-2 mb-2" id="borderBottomSpacer"></div>
                             <p class="text-red-700 pt-1 text-xs">Based on <span id="resWorkDays" class="font-semibold">0</span> standard working days missed.</p>
                         </div>
                     </div>
@@ -233,9 +266,11 @@
                 const fy25Cola = parseFloat(document.getElementById('fy25Cola').value);
                 const fy26Cola = parseFloat(document.getElementById('fy26Cola').value);
                 const lumpSum = parseFloat(document.getElementById('lumpSum').value) || 0;
+                const vacationHours = parseFloat(document.getElementById('vacationHours').value) || 0;
+                const weeklyUnemployment = parseFloat(document.getElementById('unemploymentBenefit').value) || 0;
 
                 // Validation
-                if (isNaN(baseSalary) || isNaN(fy25Cola) || isNaN(fy26Cola) || isNaN(lumpSum) || !strikeStart || !strikeEnd) {
+                if (isNaN(baseSalary) || isNaN(fy25Cola) || isNaN(fy26Cola) || isNaN(lumpSum) || isNaN(vacationHours) || isNaN(weeklyUnemployment) || !strikeStart || !strikeEnd) {
                     // Native HTML5 validation will typically catch this first due to 'required' attributes,
                     // but keeping it here as a safeguard.
                     return;
@@ -247,17 +282,7 @@
                     return;
                 }
 
-                // 1. Calculate Strike Impact
-                // Assuming standard 260 working days in a year
-                const standardWorkDaysPerYear = 260; 
-                const dailyRate = baseSalary / standardWorkDaysPerYear;
-                
-                // We add 'T12:00:00Z' to avoid timezone offset issues when parsing dates
-                const workDaysMissed = getWorkingDays(strikeStart + 'T12:00:00Z', strikeEnd + 'T12:00:00Z');
-                const lostWages = dailyRate * workDaysMissed;
-                const netLostWages = lostWages - lumpSum;
-
-                // 2. Calculate Wage Increases (Compounding)
+                // 1. Calculate Wage Increases & Base Rates
                 // Convert percentage whole numbers to decimals (e.g., 5 -> 0.05)
                 const fy25Multiplier = 1 + (fy25Cola / 100);
                 const fy26Multiplier = 1 + (fy26Cola / 100);
@@ -267,7 +292,46 @@
                 
                 const totalAnnualIncrease = salaryAfterFy26 - baseSalary;
 
-                // 3. Calculate Recovery Time
+                // 2. Calculate Strike Impact using FY25 Salary
+                // Assuming standard 260 working days in a year
+                const standardWorkDaysPerYear = 260; 
+                const dailyRate = salaryAfterFy25 / standardWorkDaysPerYear; // Using FY25 Salary per requirements
+                const hourlyRate = dailyRate / 8; // Standard 8 hour day
+                
+                // We add 'T12:00:00Z' to avoid timezone offset issues when parsing dates
+                const workDaysMissed = getWorkingDays(strikeStart + 'T12:00:00Z', strikeEnd + 'T12:00:00Z');
+                const lostWages = dailyRate * workDaysMissed;
+
+                // 3. Calculate Offsets (Vacation & Unemployment)
+                const cappedVacationHours = Math.min(Math.max(vacationHours, 0), 40);
+                const vacationOffset = cappedVacationHours * hourlyRate;
+
+                let netUnemploymentOffset = 0;
+                if (weeklyUnemployment > 0) {
+                    const endD = new Date(strikeEnd + 'T12:00:00Z');
+                    const endDayOfWeek = endD.getDay(); // 0 is Sun, 6 is Sat
+                    
+                    let remainingWorkDaysInWeek = 0;
+                    // If strike ends Sun(0) to Thu(4), they work the remaining Mon-Fri days
+                    if (endDayOfWeek >= 0 && endDayOfWeek < 5) {
+                        remainingWorkDaysInWeek = 5 - (endDayOfWeek === 0 ? 0 : endDayOfWeek);
+                    }
+                    
+                    const wagesInFinalWeek = remainingWorkDaysInWeek * dailyRate;
+                    const unemploymentAllowance = weeklyUnemployment / 3;
+                    
+                    let deduction = 0;
+                    if (wagesInFinalWeek > unemploymentAllowance) {
+                        deduction = wagesInFinalWeek - unemploymentAllowance;
+                    }
+                    
+                    netUnemploymentOffset = Math.max(0, weeklyUnemployment - deduction);
+                }
+
+                const totalOffsets = lumpSum + vacationOffset + netUnemploymentOffset;
+                const netLostWages = lostWages - totalOffsets;
+
+                // 4. Calculate Recovery Time
                 // How many years to recover lost wages using the *new* increased amount?
                 let recoveryMonths = 0;
                 if (totalAnnualIncrease > 0 && netLostWages > 0) {
@@ -275,7 +339,7 @@
                     recoveryMonths = (recoveryYears * 12).toFixed(1);
                 }
 
-                // 4. Update DOM
+                // 5. Update DOM
                 const netCostEl = document.getElementById('resNetLostWages');
                 netCostEl.classList.remove('text-red-700', 'text-green-600');
                 if (netLostWages < 0) {
@@ -288,6 +352,28 @@
 
                 document.getElementById('resLostWages').textContent = formatMoney(lostWages);
                 document.getElementById('resLumpSum').textContent = '-' + formatMoney(lumpSum);
+                
+                // Toggle visibility of conditional rows
+                const rowVacation = document.getElementById('rowVacation');
+                const rowUnemployment = document.getElementById('rowUnemployment');
+                const borderSpacer = document.getElementById('borderBottomSpacer');
+                
+                if (vacationOffset > 0) {
+                    rowVacation.classList.remove('hidden');
+                    document.getElementById('resVacation').textContent = '-' + formatMoney(vacationOffset);
+                } else {
+                    rowVacation.classList.add('hidden');
+                }
+
+                if (netUnemploymentOffset > 0 || weeklyUnemployment > 0) {
+                    rowUnemployment.classList.remove('hidden');
+                    document.getElementById('resUnemployment').textContent = '-' + formatMoney(netUnemploymentOffset);
+                    borderSpacer.classList.add('hidden'); // Hide the generic spacer if this row provides the border
+                } else {
+                    rowUnemployment.classList.add('hidden');
+                    borderSpacer.classList.remove('hidden'); // Show spacer to keep UI clean
+                }
+
                 document.getElementById('resWorkDays').textContent = workDaysMissed;
                 
                 document.getElementById('resTotalIncrease').textContent = formatMoney(totalAnnualIncrease);
